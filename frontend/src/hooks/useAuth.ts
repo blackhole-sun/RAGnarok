@@ -1,0 +1,38 @@
+import { useEffect } from "react"
+import { supabase } from "@/lib/supabase"
+import { useAuthStore } from "@/store/authStore"
+
+export function useAuth() {
+  const { user, session, setSession } = useAuthStore()
+
+  useEffect(() => {
+    // Load initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [setSession])
+
+  async function signIn(email: string, password: string) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+  }
+
+  async function signUp(email: string, password: string) {
+    const { error } = await supabase.auth.signUp({ email, password })
+    if (error) throw error
+  }
+
+  async function signOut() {
+    const { error } = await supabase.auth.signOut()
+    if (error) throw error
+  }
+
+  return { user, session, signIn, signUp, signOut }
+}
